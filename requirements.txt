@@ -1,0 +1,6 @@
+telethon
+telebot
+termcolor
+logging
+pyfiglet
+asyncio
