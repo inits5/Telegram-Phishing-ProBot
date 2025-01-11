@@ -39,7 +39,9 @@ def dripping_ascii_art(ascii_art):
 dripping_ascii_art(ascii_art)
 
 print(colored("Github -: https://github.com/inits5", attrs=['bold'], on_color='on_dark_grey'))
+print(colored("Github -: https://github.com/QMdev", attrs=['bold'], on_color='on_dark_grey'))
 print(colored("telegram -: https://t.me/Scripted_Seer",  attrs=['bold'], on_color='on_cyan'))
+
 telebotapi = telebot.TeleBot(BOT_TOKEN)
 
 user_states = {}
