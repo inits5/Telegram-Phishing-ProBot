@@ -3,6 +3,13 @@
 channel -: https://t.me/Scripted_Seer
 ---
 
+![image](https://github.com/user-attachments/assets/56d32a6d-a856-4d8d-b5ef-4d39afd8f9bb)
+
+
+---
+
+
+---
 ## 1️⃣ **دریافت API Token از بات‌فادر**
 برای راه‌اندازی ربات، شما نیاز به **توکن API** از ربات بات‌فادر (**BotFather**) دارید:
 
